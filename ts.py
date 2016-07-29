@@ -3,12 +3,13 @@ import requests
 import sys
 import pickle
 import os.path
+import time
 
-API = "REDACTED Contact me for details"
+API = "REDACTED CONTACT ME"
 
 class TS(object):
     """TumblrScrape
-    Using a random API on the internet (REDACTED)
+    Using a random API on the internet REDACTED
     --- A tumblr slideshow maker --- I was able to find out how it
     worked and how it got the convoluted Tumblr URL. This class will
     create the basic data structure to get the URL, the image, and make
@@ -26,10 +27,9 @@ class TS(object):
         if os.path.isfile("{}.scrapedata".format(blogURI)):
             """Use pickle to unpack file"""
             self._pickleLoad()
-            self.update()
+        self.update()
 
     def _getPost(self, URI):
-        print("hello")
         return URL.split('/')[4]
 
     def _pickleLoad(self):
@@ -38,11 +38,15 @@ class TS(object):
 
     def _pickleSave(self):
         with open("{}.scrapedata".format(self.blogURI), "wb") as f:
-            pickle.dump([self.downloaded, self.queue])
+            pickle.dump([self.downloaded, self.queue], f)
 
     def update(self):
-        #self.fillQueue()
+        self.fillQueue()
         postNum = len(self.downloaded)
+        if not self.queue:
+            print "Already Updated!"
+            print "Current post is {}".format(len(self.downloaded) - 1)
+            return
         for i in self.queue[::-1]:
             fileType = i['imgurl'].split('.')[-1]
             filename = "{0:05d}_{1}.{2}".format(postNum, self.blogURI, fileType)
@@ -57,8 +61,10 @@ class TS(object):
         self._pickleSave()
 
     def fillQueue(self):
+        print "Filling Queue"
         if self.downloaded:
-            lastPost = self.downloaded[0]['posturl']
+            print "self downloaded???"
+            lastPost = self.downloaded[-1]['posturl']
         else:
             lastPost = None
         currOffset = 0
@@ -67,6 +73,8 @@ class TS(object):
             if len(r.json()) == 0:
                 break
             for i in r.json():
+                #print i['posturl']
+                #print lastPost
                 if i['posturl'] == lastPost:
                     break
                 else:
@@ -77,28 +85,9 @@ class TS(object):
             break
         self._pickleSave()
 
-    def fillQueueFirstTime(self):
-        currOffset = 0
-        print("Posting",API.format(self.blogURI, currOffset))
-        r = requests.post(API.format(self.blogURI, currOffset))
-        prevPost = None
-        for i in r.json():
-            postURL = i['posturl']
-            #print(postURL, i['imgurl'])
-            if not prevPost or prevPost != postURL:
-                prevPost = postURL
-                currOffset += 1
-            self.queue.append(i)
-        print currOffset
-        while len(r.json()) > 0:
-            print("Posting",API.format(self.blogURI, currOffset))
-            r = requests.post(API.format(self.blogURI, currOffset))
-            for i in r.json():
-                postURL = i['posturl']
-                #print(postURL, i['imgurl'])
-                if not prevPost or prevPost != postURL:
-                    prevPost = postURL
-                    currOffset += 1
-                self.queue.append(i)
-            print currOffset
-        self._pickleSave()
+def main():
+    if len(sys.args) != 2:
+        print("Usage: python {} <tumblrblogtitle>", sys.args[0])
+        return
+
+    x = TS(sys.args[1])
