@@ -63,7 +63,6 @@ class TS(object):
     def fillQueue(self):
         print "Filling Queue"
         if self.downloaded:
-            print "self downloaded???"
             lastPost = self.downloaded[-1]['posturl']
         else:
             lastPost = None
@@ -86,8 +85,11 @@ class TS(object):
         self._pickleSave()
 
 def main():
-    if len(sys.args) != 2:
-        print("Usage: python {} <tumblrblogtitle>", sys.args[0])
+    if len(sys.argv) != 2:
+        print("Usage: python {} <tumblrblogtitle>", sys.argv[0])
         return
 
-    x = TS(sys.args[1])
+    x = TS(sys.argv[1])
+
+if __name__ == '__main__':
+    main()
