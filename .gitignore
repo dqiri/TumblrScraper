@@ -1,0 +1,6 @@
+*.jpg
+*.png
+*.gif
+*.pyc
+tumblrapi
+*.scrapedata
