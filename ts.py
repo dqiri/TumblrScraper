@@ -5,7 +5,7 @@ import pickle
 import os.path
 import time
 
-API = "REDACTED CONTACT ME"
+API = "REDACTED"
 
 class TS(object):
     """TumblrScrape
@@ -27,7 +27,7 @@ class TS(object):
         if os.path.isfile("{}.scrapedata".format(blogURI)):
             """Use pickle to unpack file"""
             self._pickleLoad()
-        self.update()
+        #self.update()
 
     def _getPost(self, URI):
         return URL.split('/')[4]
@@ -37,28 +37,50 @@ class TS(object):
             self.downloaded, self.queue = pickle.load(f)
 
     def _pickleSave(self):
-        with open("{}.scrapedata".format(self.blogURI), "wb") as f:
-            pickle.dump([self.downloaded, self.queue], f)
+        try:
+            with open("{}.scrapedata".format(self.blogURI), "wb") as f:
+                pickle.dump([self.downloaded, self.queue], f)
+        except KeyboardInterrupt:
+            with open("{}.scrapedata".format(self.blogURI), "wb") as f:
+                pickle.dump([self.downloaded, self.queue], f)
+            print("Interrupted!")
+            sys.exit()
 
     def update(self):
-        self.fillQueue()
         postNum = len(self.downloaded)
+        if not self.queue:
+            self.fillQueue()
         if not self.queue:
             print "Already Updated!"
             print "Current post is {}".format(len(self.downloaded) - 1)
             return
+        totalLen = len(self.queue)
         for i in self.queue[::-1]:
             fileType = i['imgurl'].split('.')[-1]
             filename = "{0:05d}_{1}.{2}".format(postNum, self.blogURI, fileType)
-            print(filename, i['imgurl'])
+            print("Saving {} @ {}".format(filename, i['imgurl'])),
             postNum += 1
-            with open(filename, 'wb') as f:
-                r = requests.get(i['imgurl'])
-                print("Saving",i['imgurl'],filename)
-                f.write(r.content)
+            try:
+                with open(filename, 'wb') as f:
+                    r = requests.get(i['imgurl'])
+                    f.write(r.content)
+                    print(" OK!")
+            except KeyboardInterrupt:
+                with open(filename, 'wb') as f:
+                    r = requests.get(i['imgurl'])
+                    f.write(r.content)
+                    print(" OK!")
+                self.downloaded.append(i)
+                self.queue.pop()
+                self._pickleSave()
+                print("Interrupted!")
+                sys.exit()
+
             self.downloaded.append(i)
-        self.queue = []
+            self.queue.pop()
+            self._pickleSave()
         self._pickleSave()
+        assert(len(self.queue) == 0)
 
     def fillQueue(self):
         print "Filling Queue"
@@ -68,6 +90,7 @@ class TS(object):
             lastPost = None
         currOffset = 0
         while True:
+            print("Fill is at {}".format(len(self.queue)))
             r = requests.post(API.format(self.blogURI, currOffset))
             if len(r.json()) == 0:
                 break
@@ -90,6 +113,7 @@ def main():
         return
 
     x = TS(sys.argv[1])
+    x.update()
 
 if __name__ == '__main__':
     main()
